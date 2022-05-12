@@ -2,3 +2,8 @@
 *.zip
 *.gif
 .DS_Store
+build
+*.pdx
+*.bin
+*.dylib
+.nova

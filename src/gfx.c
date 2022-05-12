@@ -31,6 +31,12 @@ Poly* protate(PlaydateAPI* pd, Poly* p, Point origin, double angle) {
 	}
 	return w;
 }
+void ptranslate(Poly* p, Point translation) {
+	for (int i = 0; i < p->n; i++) {
+		p->points[i].x += translation.x;
+		p->points[i].y += translation.y;
+	}
+}
 
 // drawing
 void pdraw(PlaydateAPI *pd, Poly *p, LCDSolidColor color) {

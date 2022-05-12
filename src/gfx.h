@@ -16,6 +16,7 @@ typedef struct {
 // math
 Point rotatePoint(Point point, Point origin, double angle);
 Poly* protate(PlaydateAPI* pd, Poly* p, Point origin, double angle);
+void ptranslate(Poly* p, Point translation);
 
 // draw
 void pdraw(PlaydateAPI* pd, Poly* p, LCDSolidColor color);

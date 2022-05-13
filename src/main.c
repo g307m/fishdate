@@ -5,6 +5,7 @@
 
 #include "fdm.h"
 #include "gfx.h"
+#include "global.h"
 #include "fd_strings.h"
 
 static int update(void* userdata);
@@ -25,8 +26,6 @@ int eventHandler(PlaydateAPI* pd, PDSystemEvent event, uint32_t arg)
 		
 		if ( font == NULL )
 			pd->system->error("%s:%i Couldn't load font %s: %s", __FILE__, __LINE__, fontpath, err);
-
-		// Note: If you set an update callback in the kEventInit handler, the system assumes the game is pure C and doesn't run any Lua code in the game
 		pd->system->setUpdateCallback(update, pd);
 		break;
 		default:
@@ -35,24 +34,13 @@ int eventHandler(PlaydateAPI* pd, PDSystemEvent event, uint32_t arg)
 	return 0;
 }
 
-Point org = {150,150};
-
-Point pts[] = {
-	{100,100},
-	{100,200},
-	{200,200},
-	{200,100}
-};
-
-Poly q = {
-	4,
-	pts
-};
 int rot = 0;
 
 PDButtons current = 0;
 PDButtons pushed = 0;
 PDButtons released = 0;
+
+double vrate = 0;
 
 static int update(void* userdata)
 {
@@ -60,17 +48,30 @@ static int update(void* userdata)
 
 	// move shape
 	pd->system->getButtonState(&current, &pushed, &released);
-	if (current & kButtonLeft ) {ptranslate(&q, (Point){-5,0});org.x-=5;}
-	if (current & kButtonRight) {ptranslate(&q, (Point){5, 0});org.x+=5;}
-	if (current & kButtonUp   ) {ptranslate(&q, (Point){0,-5});org.y-=5;}
-	if (current & kButtonDown ) {ptranslate(&q, (Point){0, 5});org.y+=5;}
+	if (!pd->system->isCrankDocked()) {
+		vrate += pd->system->getCrankChange() / 4;
+		if (fabs(vrate) < 0.01) {
+			vrate = 0;
+		}
+	} else {
+		vrate = 0;
+	}
+
+	if (vrate != 0) {
+		vrate /= 1.1;
+	}
+
+	ptranslate(&hook_poly, (Point){0,vrate});
+	hook_org.y+=vrate;
+	if (current & kButtonLeft ) {ptranslate(&hook_poly, (Point){-5,0});hook_org.x-=5;}
+	if (current & kButtonRight) {ptranslate(&hook_poly, (Point){5, 0});hook_org.x+=5;}
 
 	pd->graphics->clear(kColorWhite);
 	pd->graphics->setFont(font);
-	Poly* mod = protate(pd, &q, org, degrad(pd->system->getCrankAngle()));
+	Poly* mod = protate(pd, &hook_poly, hook_org, degrad(current & kButtonRight?15:(current & kButtonLeft?-15:0)));
 	pdraw(pd, mod, kColorBlack);
-	pd->system->realloc(mod->points, NULL);
-	pd->system->realloc(mod, NULL);
+	pd->system->realloc(mod->points, 0);
+	pd->system->realloc(mod, 0);
 
 	pd->system->drawFPS(0,0);
 	pd->graphics->drawText(number, 12, kASCIIEncoding, 0,30);
